@@ -130,8 +130,24 @@ class TransformerDecoderLayer(nn.Module):
 
         return ffnn_normalized
 
-    def forward(self, x, mask):
+    def forward(self, x, encoder_out, target_mask = None, encoder_pad_mask = None):
         """
+        Paramters
+        ---------
+        x : torch.FloatTensor
+            masked target features
+
+        target_mask : torch.FloatTensor
+            padding or masked toekn (0) otherwise (1)
+
+        encoder_out : torch.FloatTensor
+            encoder output
+
+        encoder_pad_mask : torch.FloatTensor
+            padding (0) otherwise (1)
+
+        Notes
+        -----
         1. masked self attention
             x' = multi_head_attention(x, mask)
             x'' = layer_normalization(x + x')
@@ -146,8 +162,10 @@ class TransformerDecoderLayer(nn.Module):
 
         return x*''
         """
-        masked_attn_norm = self.masked_self_attention(x, mask)
-        attn_norm = self.self_attention(masked_attn_norm)
+        masked_attn_norm = self.masked_self_attention(qkv = x, mask = target_mask)
+        attn_norm = self.self_attention(q = masked_attn_norm,
+                                        kv = encoder_out,
+                                        mask = encoder_pad_mask)
         ffnn_norm = self.feed_forward(attn_norm)
 
         return ffnn_norm
