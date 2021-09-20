@@ -210,3 +210,64 @@ class TransformerDecoder(nn.Module):
                         encoder_pad_mask = encoder_pad_mask)
         
         return x
+
+class Transformer(nn.Module):
+    def __init__(self,
+                n_encoders = 6,
+                n_decoders = 6,
+                n_heads = 8,
+                d_model = 512,
+                d_hidden_ffnn = 2048):
+        """Transformer
+        Attention is all you need (https://arxiv.org/pdf/1706.03762.pdf)
+
+        Parameters
+        ----------
+        n_encoders, n_decoders : int
+            the number of encoders and decoders
+        n_heads : int
+            the number of heads in multi head attention.
+        d_model : int
+            the dimension of features.
+        d_hidden_ffnn : int
+            the hidden diemnsion of the feedforward network.
+        """
+        super().__init__()
+
+        self.encoder = TransformerEncoder(n_layers = n_encoders,
+                                          n_heads = n_heads,
+                                          d_model = d_model,
+                                          d_hidden_ffnn = d_hidden_ffnn)
+        
+        self.decoder = TransformerDecoder(n_layers = n_decoders,
+                                          n_heads = n_heads,
+                                          d_model = d_model,
+                                          d_hidden_ffnn = d_hidden_ffnn)
+
+    def forward(self, inputs, inputs_pad_mask, masked_targets, target_mask):
+        """
+        Parameters
+        ----------
+        inputs : torch.FloatTensor
+            shape : (batch_size, max_length, d_model)
+
+        inputs_pad_mask : torch.FloatTensor
+            shape : (batch_size, max_length, d_model)
+            padding (0) otherwise (1)
+
+        masked_targets : torch.FloatTensor
+            shape : (batch_size, max_length, d_model)
+            masked target features
+
+        inputs_pad_mask : torch.FloatTensor
+            shape : (batch_size, max_length, d_model)
+            padding (0) otherwise (1)
+        """
+        encoder_out = self.encoder(x = inputs,
+                                    mask = inputs_pad_mask)
+        decoder_out = self.decoder(x = masked_targets,
+                                    encoder_out = encoder_out,
+                                    target_mask = target_mask,
+                                    encoder_pad_mask = inputs_pad_mask)
+
+        return decoder_out
