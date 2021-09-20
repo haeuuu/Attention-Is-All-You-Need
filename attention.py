@@ -102,3 +102,18 @@ class MultiHeadAttention(nn.Module):
         aggregated = self.w['w_out'](output_concat)
 
         return aggregated
+
+class FeedForwardNN(nn.Module):
+    def __init__(self, d_model, d_hidden):
+        super().__init__()
+
+        self.linear1 = nn.Linear(d_model, d_hidden)
+        self.relu = nn.ReLu()
+        self.linear2 = nn.Linear(d_hidden, d_model)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.relu(x)
+        x = self.linear2(x)
+
+        return x
