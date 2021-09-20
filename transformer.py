@@ -169,3 +169,44 @@ class TransformerDecoderLayer(nn.Module):
         ffnn_norm = self.feed_forward(attn_norm)
 
         return ffnn_norm
+
+class TransformerEncoder(nn.Module):
+    def __init__(self,
+                n_layers = 6,
+                n_heads = 8,
+                d_model = 512,
+                d_hidden_ffnn = 2048):
+        super().__init__()
+
+        self.encoders = nn.Modulelist([TransformerEncoderLayer(n_heads = n_heads,
+                                                                d_model = d_model,
+                                                                d_hidden_ffnn = d_hidden_ffnn) \
+                                                                for _ in range(n_layers)])
+
+    def forward(self, x, mask = None):
+        for encoder in self.encoders:
+            x = encoder(x, mask)
+        
+        return x
+
+class TransformerDecoder(nn.Module):
+    def __init__(self,
+                n_layers = 6,
+                n_heads = 8,
+                d_model = 512,
+                d_hidden_ffnn = 2048):
+        super().__init__()
+
+        self.decoders = nn.Modulelist([TransformerDecoderLayer(n_heads = n_heads,
+                                                                d_model = d_model,
+                                                                d_hidden_ffnn = d_hidden_ffnn) \
+                                                                for _ in range(n_layers)])
+
+    def forward(self, x, encoder_out, target_mask = None, encoder_pad_mask = None):
+        for decoder in self.decoders:
+            x = decoder(x = x,
+                        encoder_out = encoder_out,
+                        target_mask = target_mask,
+                        encoder_pad_mask = encoder_pad_mask)
+        
+        return x
