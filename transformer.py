@@ -35,12 +35,12 @@ class TransformerEncoderLayer(nn.Module):
                                   d_hidden = d_hidden_ffnn)
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
-    def self_attention(self, x, mask = None):
-        attention = self.multi_head_attention(Q = x,
-                                              K = x,
-                                              V = x,
+    def self_attention(self, qkv, mask = None):
+        attention = self.multi_head_attention(Q = qkv,
+                                              K = qkv,
+                                              V = qkv,
                                               mask = mask)
-        attention_normalized = self.layer_norm_for_attention(x + attention)
+        attention_normalized = self.layer_norm_for_attention(qkv + attention)
 
         return attention_normalized
 
@@ -52,6 +52,8 @@ class TransformerEncoderLayer(nn.Module):
 
     def forward(self, x, mask = None):
         """
+        Notes
+        -----
         1. self attention
             x' = multi_head_attention(x)
             x'' = layer_normalization(x + x')
@@ -62,7 +64,7 @@ class TransformerEncoderLayer(nn.Module):
 
         return x**
         """
-        attn_norm = self.self_attention(x, mask)
+        attn_norm = self.self_attention(qkv = x, mask = mask)
         ffnn_norm = self.feed_forward(attn_norm)
 
         return ffnn_norm
@@ -104,21 +106,21 @@ class TransformerDecoderLayer(nn.Module):
                                   d_hidden = d_hidden_ffnn)
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
-    def masked_self_attention(self, x, mask):
-        attention = self.masked_attention(Q = x,
-                                          K = x,
-                                          V = x,
+    def masked_self_attention(self, qkv, mask):
+        attention = self.masked_attention(Q = qkv,
+                                          K = qkv,
+                                          V = qkv,
                                           mask = mask)
-        attention_normalized = self.layer_norm_for_attention(x + attention)
+        attention_normalized = self.layer_norm_for_masked_attn(qkv + attention)
 
         return attention_normalized
 
-    def self_attention(self, x, mask = None):
-        attention = self.multi_head_attention(Q = x,
-                                              K = x,
-                                              V = x,
+    def self_attention(self, q, kv, mask):
+        attention = self.multi_head_attention(Q = q,
+                                              K = kv,
+                                              V = kv,
                                               mask = mask)
-        attention_normalized = self.layer_norm_for_attention(x + attention)
+        attention_normalized = self.layer_norm_for_ed_attn(q + attention)
 
         return attention_normalized
 
