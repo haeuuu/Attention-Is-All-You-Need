@@ -12,15 +12,13 @@ class PositionalEncoding(nn.Module):
         """
         super().__init__()
 
-        positional_embedding = torch.zeros(max_len, d_model)
+        self.positional_encoding = torch.zeros(max_len, d_model)
         pos = torch.arange(0, max_len).unsqueeze(1) # (max_len, 1)
         denominator = torch.exp( - torch.arange(0, d_model, 2).float() * math.log(10000) / d_model)
+        v = torch.mul(pos, denominator)
 
-        positional_embedding[:, 0::2] = torch.sin(torch.mul(pos, denominator))
-        positional_embedding[:, 1::2] = torch.cos(torch.mul(pos, denominator))
-
-        # (max_len, d_model) to (1, max_len, d_model)
-        self.positional_embedding = positional_embedding.unsqueeze(0)
+        self.positional_encoding[:, 0::2] = torch.sin(v)
+        self.positional_encoding[:, 1::2] = torch.cos(v)
 
     def forward(self, x):
         """
@@ -30,7 +28,6 @@ class PositionalEncoding(nn.Module):
             (batch_size, length, d_hidden)
         """
         length = x.shape[1]
-        x = x + self.positional_embedding[:length, :]
+        x = x + self.positional_encoding[:length, :]
 
         return x
-
