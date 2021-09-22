@@ -108,8 +108,14 @@ class FeedForwardNN(nn.Module):
         super().__init__()
 
         self.linear1 = nn.Linear(d_model, d_hidden)
-        self.relu = nn.ReLu()
+        self.relu = nn.ReLU()
         self.linear2 = nn.Linear(d_hidden, d_model)
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        torch.nn.init.xavier_uniform_(self.linear1.weight)
+        torch.nn.init.xavier_uniform_(self.linear2.weight)
 
     def forward(self, x):
         x = self.linear1(x)
