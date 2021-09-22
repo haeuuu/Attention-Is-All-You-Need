@@ -25,37 +25,37 @@ class TransformerEncoderLayer(nn.Module):
 
         self.d_hidden = d_model // n_heads
 
-        self.multi_head_attention = MultiHeadAttention(n_heads = n_heads,
-                                                        d_model = d_model,
-                                                        d_query = self.d_hidden,
-                                                        d_value = self.d_hidden)
-        self.layer_norm_for_attention = LayerNormalization(d_model)
+        self.self_attn = MultiHeadAttention(n_heads = n_heads,
+                                            d_model = d_model,
+                                            d_query = self.d_hidden,
+                                            d_value = self.d_hidden)
+        self.layer_norm_for_self_attn = LayerNormalization(d_model)
 
         self.ffnn = FeedForwardNN(d_model = d_model,
                                   d_hidden = d_hidden_ffnn)
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
     def self_attention(self, qkv, mask = None):
-        attention = self.multi_head_attention(Q = qkv,
-                                              K = qkv,
-                                              V = qkv,
-                                              mask = mask)
-        attention_normalized = self.layer_norm_for_attention(qkv + attention)
+        output = self.self_attn(Q = qkv,
+                                K = qkv,
+                                V = qkv,
+                                mask = mask)
+        output_normalized = self.layer_norm_for_self_attn(qkv + output)
 
-        return attention_normalized
+        return output_normalized
 
     def feed_forward(self, x):
-        ffnn = self.ffnn(x)
-        ffnn_normalized = self.layer_norm_for_ffnn(x + ffnn)
+        output = self.ffnn(x)
+        output_normalized = self.layer_norm_for_ffnn(x + output)
 
-        return ffnn_normalized
+        return output_normalized
 
     def forward(self, x, mask = None):
         """
         Notes
         -----
         1. self attention
-            x' = multi_head_attention(x)
+            x' = multi_head_attention(x, mask)
             x'' = layer_normalization(x + x')
 
         2. feed forward
@@ -64,10 +64,10 @@ class TransformerEncoderLayer(nn.Module):
 
         return x**
         """
-        attn_norm = self.self_attention(qkv = x, mask = mask)
-        ffnn_norm = self.feed_forward(attn_norm)
+        output_attn = self.self_attention(qkv = x, mask = mask)
+        output_ffnn = self.feed_forward(output_attn)
 
-        return ffnn_norm
+        return output_ffnn
 
 class TransformerDecoderLayer(nn.Module):
     def __init__(self,
@@ -90,16 +90,16 @@ class TransformerDecoderLayer(nn.Module):
 
         self.d_hidden = d_model // n_heads
 
-        self.masked_attention = MultiHeadAttention(n_heads = n_heads,
+        self.masked_self_attn = MultiHeadAttention(n_heads = n_heads,
                                                     d_model = d_model,
                                                     d_query = self.d_hidden,
                                                     d_value = self.d_hidden)
-        self.layer_norm_for_masked_attn = LayerNormalization(d_model)
+        self.layer_norm_for_self_attn = LayerNormalization(d_model)
 
-        self.encoder_decoder_attention = MultiHeadAttention(n_heads = n_heads,
-                                                            d_model = d_model,
-                                                            d_query = self.d_hidden,
-                                                            d_value = self.d_hidden)
+        self.ed_attn = MultiHeadAttention(n_heads = n_heads,
+                                        d_model = d_model,
+                                        d_query = self.d_hidden,
+                                        d_value = self.d_hidden)
         self.layer_norm_for_ed_attn = LayerNormalization(d_model)
 
         self.ffnn = FeedForwardNN(d_model = d_model,
@@ -107,28 +107,28 @@ class TransformerDecoderLayer(nn.Module):
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
     def masked_self_attention(self, qkv, mask):
-        attention = self.masked_attention(Q = qkv,
-                                          K = qkv,
-                                          V = qkv,
-                                          mask = mask)
-        attention_normalized = self.layer_norm_for_masked_attn(qkv + attention)
+        output = self.masked_self_attn(Q = qkv,
+                                        K = qkv,
+                                        V = qkv,
+                                        mask = mask)
+        output_normalized = self.layer_norm_for_self_attn(qkv + output)
 
-        return attention_normalized
+        return output_normalized
 
-    def self_attention(self, q, kv, mask):
-        attention = self.multi_head_attention(Q = q,
-                                              K = kv,
-                                              V = kv,
-                                              mask = mask)
-        attention_normalized = self.layer_norm_for_ed_attn(q + attention)
+    def encoder_decoder_attention(self, q, kv, mask):
+        output = self.ed_attn(Q = q,
+                            K = kv,
+                            V = kv,
+                            mask = mask)
+        output_normalized = self.layer_norm_for_ed_attn(q + output)
 
-        return attention_normalized
+        return output_normalized
 
     def feed_forward(self, x):
-        ffnn = self.ffnn(x)
-        ffnn_normalized = self.layer_norm_for_ffnn(x + ffnn)
+        output = self.ffnn(x)
+        output_normalized = self.layer_norm_for_ffnn(x + output)
 
-        return ffnn_normalized
+        return output_normalized
 
     def forward(self, x, encoder_out, target_mask = None, encoder_pad_mask = None):
         """
@@ -138,7 +138,7 @@ class TransformerDecoderLayer(nn.Module):
             masked target features
 
         target_mask : torch.FloatTensor
-            padding or masked toekn (0) otherwise (1)
+            padding or masked token (0) otherwise (1)
 
         encoder_out : torch.FloatTensor
             encoder output
@@ -153,22 +153,22 @@ class TransformerDecoderLayer(nn.Module):
             x'' = layer_normalization(x + x')
 
         2. encoder-decoder attention
-            x* = multi_head_attention(x'')
+            x* = multi_head_attention(x'', y, mask) where y ; encoder output
             x** = layer_normalization(x'' + x*)
 
         2. feed forward
             x' = feed_forward(x**)
             x'' = layer_normalization(x** + x')
 
-        return x*''
+        return x''
         """
-        masked_attn_norm = self.masked_self_attention(qkv = x, mask = target_mask)
-        attn_norm = self.self_attention(q = masked_attn_norm,
-                                        kv = encoder_out,
-                                        mask = encoder_pad_mask)
-        ffnn_norm = self.feed_forward(attn_norm)
+        output_masked_attn = self.masked_self_attention(qkv = x, mask = target_mask)
+        output_ed_attn = self.encoder_decoder_attention(q = output_masked_attn,
+                                                        kv = encoder_out,
+                                                        mask = encoder_pad_mask)
+        output_ffnn = self.feed_forward(output_ed_attn)
 
-        return ffnn_norm
+        return output_ffnn
 
 class TransformerEncoder(nn.Module):
     def __init__(self,
@@ -178,7 +178,7 @@ class TransformerEncoder(nn.Module):
                 d_hidden_ffnn = 2048):
         super().__init__()
 
-        self.encoders = nn.Modulelist([TransformerEncoderLayer(n_heads = n_heads,
+        self.encoders = nn.ModuleList([TransformerEncoderLayer(n_heads = n_heads,
                                                                 d_model = d_model,
                                                                 d_hidden_ffnn = d_hidden_ffnn) \
                                                                 for _ in range(n_layers)])
@@ -197,7 +197,7 @@ class TransformerDecoder(nn.Module):
                 d_hidden_ffnn = 2048):
         super().__init__()
 
-        self.decoders = nn.Modulelist([TransformerDecoderLayer(n_heads = n_heads,
+        self.decoders = nn.ModuleList([TransformerDecoderLayer(n_heads = n_heads,
                                                                 d_model = d_model,
                                                                 d_hidden_ffnn = d_hidden_ffnn) \
                                                                 for _ in range(n_layers)])
@@ -249,18 +249,18 @@ class Transformer(nn.Module):
         Parameters
         ----------
         inputs : torch.FloatTensor
-            shape : (batch_size, max_length, d_model)
+            shape : (batch_size, seq_len, d_model)
 
         inputs_pad_mask : torch.FloatTensor
-            shape : (batch_size, max_length, d_model)
+            shape : (batch_size, seq_len, d_model)
             padding (0) otherwise (1)
 
         masked_targets : torch.FloatTensor
-            shape : (batch_size, max_length, d_model)
+            shape : (batch_size, seq_len, d_model)
             masked target features
 
         inputs_pad_mask : torch.FloatTensor
-            shape : (batch_size, max_length, d_model)
+            shape : (batch_size, seq_len, d_model)
             padding (0) otherwise (1)
         """
         encoder_out = self.encoder(x = inputs,
@@ -271,3 +271,21 @@ class Transformer(nn.Module):
                                     encoder_pad_mask = inputs_pad_mask)
 
         return decoder_out
+
+if __name__ == '__main__':
+    """
+    Example
+    """
+    
+    batch_size, d_hidden = 32, 512
+    src = torch.rand((batch_size, 10, d_hidden)) # k_len = 10
+    tgt = torch.rand((batch_size, 20, d_hidden)) # q_len = 20
+
+    transformer = Transformer()
+    out = transformer(inputs = src,
+                    inputs_pad_mask = None,
+                    masked_targets = tgt,
+                    target_mask = None)
+
+    print(out)
+    print(out.shape) # (batch_size, q_len, d_hidden)
