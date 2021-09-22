@@ -28,14 +28,14 @@ class ScaledDotProductAttention(nn.Module):
         Parameters
         ----------
         Q, K : torch.Tensor
-            query, key (batch_size, n_heads, max_length, d_model)
+            query, key (batch_size, n_heads, seq_len, d_model)
         V : torch.Tensor
-            value (batch_size, n_heads, max_length, d_value)
+            value (batch_size, n_heads, seq_len, d_value)
 
         Returns
         -------
         output : torch.Tensor
-            (batch_size, n_heads, max_length, d_value)
+            (batch_size, n_heads, seq_len, d_value)
         """
         scale = K.shape[-1] ** (-2)
         dot_product = Q @ K.transpose(-1, -2)
