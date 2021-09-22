@@ -8,7 +8,8 @@ class TransformerEncoderLayer(nn.Module):
     def __init__(self,
                 n_heads = 8,
                 d_model = 512,
-                d_hidden_ffnn = 2048):
+                d_hidden_ffnn = 2048,
+                drop_prob = 0.1):
         """Encoder Layer for Transformer
         Parameters
         ----------
@@ -28,11 +29,14 @@ class TransformerEncoderLayer(nn.Module):
         self.self_attn = MultiHeadAttention(n_heads = n_heads,
                                             d_model = d_model,
                                             d_query = self.d_hidden,
-                                            d_value = self.d_hidden)
+                                            d_value = self.d_hidden,
+                                            drop_prob = drop_prob)
         self.layer_norm_for_self_attn = LayerNormalization(d_model)
 
         self.ffnn = FeedForwardNN(d_model = d_model,
-                                  d_hidden = d_hidden_ffnn)
+                                  d_hidden = d_hidden_ffnn,
+                                  drop_prob = drop_prob)
+
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
     def self_attention(self, qkv, mask = None):
@@ -73,7 +77,8 @@ class TransformerDecoderLayer(nn.Module):
     def __init__(self,
                 n_heads = 8,
                 d_model = 512,
-                d_hidden_ffnn = 2048):
+                d_hidden_ffnn = 2048,
+                drop_prob = 0.1):
         """Decoder Layer for Transformer
         Parameters
         ----------
@@ -93,17 +98,20 @@ class TransformerDecoderLayer(nn.Module):
         self.masked_self_attn = MultiHeadAttention(n_heads = n_heads,
                                                     d_model = d_model,
                                                     d_query = self.d_hidden,
-                                                    d_value = self.d_hidden)
+                                                    d_value = self.d_hidden,
+                                                    drop_prob = drop_prob)
         self.layer_norm_for_self_attn = LayerNormalization(d_model)
 
         self.ed_attn = MultiHeadAttention(n_heads = n_heads,
                                         d_model = d_model,
                                         d_query = self.d_hidden,
-                                        d_value = self.d_hidden)
+                                        d_value = self.d_hidden,
+                                        drop_prob = drop_prob)
         self.layer_norm_for_ed_attn = LayerNormalization(d_model)
 
         self.ffnn = FeedForwardNN(d_model = d_model,
-                                  d_hidden = d_hidden_ffnn)
+                                  d_hidden = d_hidden_ffnn,
+                                  drop_prob = drop_prob)
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
     def masked_self_attention(self, qkv, mask):
@@ -175,12 +183,14 @@ class TransformerEncoder(nn.Module):
                 n_layers = 6,
                 n_heads = 8,
                 d_model = 512,
-                d_hidden_ffnn = 2048):
+                d_hidden_ffnn = 2048,
+                drop_prob = 0.1):
         super().__init__()
 
         self.encoders = nn.ModuleList([TransformerEncoderLayer(n_heads = n_heads,
                                                                 d_model = d_model,
-                                                                d_hidden_ffnn = d_hidden_ffnn) \
+                                                                d_hidden_ffnn = d_hidden_ffnn,
+                                                                drop_prob = drop_prob) \
                                                                 for _ in range(n_layers)])
 
     def forward(self, x, mask = None):
@@ -194,12 +204,14 @@ class TransformerDecoder(nn.Module):
                 n_layers = 6,
                 n_heads = 8,
                 d_model = 512,
-                d_hidden_ffnn = 2048):
+                d_hidden_ffnn = 2048,
+                drop_prob = 0.1):
         super().__init__()
 
         self.decoders = nn.ModuleList([TransformerDecoderLayer(n_heads = n_heads,
                                                                 d_model = d_model,
-                                                                d_hidden_ffnn = d_hidden_ffnn) \
+                                                                d_hidden_ffnn = d_hidden_ffnn,
+                                                                drop_prob = drop_prob) \
                                                                 for _ in range(n_layers)])
 
     def forward(self, x, encoder_out, target_mask = None, encoder_pad_mask = None):
@@ -217,7 +229,8 @@ class Transformer(nn.Module):
                 n_decoders = 6,
                 n_heads = 8,
                 d_model = 512,
-                d_hidden_ffnn = 2048):
+                d_hidden_ffnn = 2048,
+                drop_prob = 0.1):
         """Transformer
         Attention is all you need (https://arxiv.org/pdf/1706.03762.pdf)
 
@@ -237,12 +250,14 @@ class Transformer(nn.Module):
         self.encoder = TransformerEncoder(n_layers = n_encoders,
                                           n_heads = n_heads,
                                           d_model = d_model,
-                                          d_hidden_ffnn = d_hidden_ffnn)
+                                          d_hidden_ffnn = d_hidden_ffnn,
+                                          drop_prob = drop_prob)
         
         self.decoder = TransformerDecoder(n_layers = n_decoders,
                                           n_heads = n_heads,
                                           d_model = d_model,
-                                          d_hidden_ffnn = d_hidden_ffnn)
+                                          d_hidden_ffnn = d_hidden_ffnn,
+                                          drop_prob = drop_prob)
 
     def forward(self, inputs, inputs_pad_mask, masked_targets, target_mask):
         """
