@@ -1,27 +1,10 @@
-"""
-Transformer
-    - preprocessing
-        - positional embedding
-    - Encoder
-        - self attention
-        - feedforward
-    - Decoder
-        - masked self attention
-            - input : masked Q,K,V (이전 step 예측값)
-        - encoder decoder attention
-        - feedforward
-
-(+)
-- residual connection
-- layer normalization
-"""
-
 import torch
 from torch import nn
 
 class ScaledDotProductAttention(nn.Module):
-    def __init__(self):
+    def __init__(self, drop_prob = 0.1):
         super().__init__()
+        self.dropout = nn.Dropout(drop_prob)
 
     def forward(self, Q, K, V, mask = None):
         """
@@ -45,13 +28,14 @@ class ScaledDotProductAttention(nn.Module):
             scaled_dot_product.masked_fill_(mask, float('-inf'))
 
         attention_score = scaled_dot_product.softmax(dim = -1)
+        attention_score = self.dropout(attention_score)
 
         output = attention_score @ V
 
         return output
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, n_heads, d_model, d_query, d_value):
+    def __init__(self, n_heads, d_model, d_query, d_value, drop_prob = 0.1):
         super().__init__()
         self.n_heads = n_heads
         self.d_query = d_query
@@ -62,16 +46,16 @@ class MultiHeadAttention(nn.Module):
         self.w['w_k'] = nn.Linear(d_model, n_heads * d_query)
         self.w['w_v'] = nn.Linear(d_model, n_heads * d_value)
         
-        self.attention = ScaledDotProductAttention()
+        self.attention = ScaledDotProductAttention(drop_prob = drop_prob)
 
         self.w['w_out'] = nn.Linear(n_heads * d_value, d_model)
+        self.dropout = nn.Dropout(drop_prob)
 
         self.reset_parameters()
 
     def reset_parameters(self):
         for linear in self.w.values():
             torch.nn.init.xavier_normal_(linear.weight)
-            torch.nn.init.xavier_normal_(linear.bias)
 
     def transform(self, Q, K, V):
         Q_concat = self.w['w_q'](Q)
@@ -102,16 +86,19 @@ class MultiHeadAttention(nn.Module):
         output_concat = self.concat(output)
 
         aggregated = self.w['w_out'](output_concat)
+        aggregated = self.dropout(aggregated)
 
         return aggregated
 
 class FeedForwardNN(nn.Module):
-    def __init__(self, d_model, d_hidden):
+    def __init__(self, d_model, d_hidden, drop_prob = 0.1):
         super().__init__()
 
         self.linear1 = nn.Linear(d_model, d_hidden)
         self.relu = nn.ReLU()
+        self.dropout1 = nn.Dropout(drop_prob)
         self.linear2 = nn.Linear(d_hidden, d_model)
+        self.dropout2 = nn.Dropout(drop_prob)
 
         self.reset_parameters()
 
@@ -122,6 +109,8 @@ class FeedForwardNN(nn.Module):
     def forward(self, x):
         x = self.linear1(x)
         x = self.relu(x)
+        x = self.dropout1(x)
         x = self.linear2(x)
+        x = self.dropout2(x)
 
         return x
