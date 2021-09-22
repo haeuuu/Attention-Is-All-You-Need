@@ -37,12 +37,12 @@ class ScaledDotProductAttention(nn.Module):
         output : torch.Tensor
             (batch_size, n_heads, seq_len, d_value)
         """
-        scale = K.shape[-1] ** (-2)
+        scale = K.shape[-1] ** (1/2)
         dot_product = Q @ K.transpose(-1, -2)
         scaled_dot_product = dot_product / scale
 
-        if mask:
-            scaled_dot_product.masked_fill_(mask, float('inf'))
+        if mask is not None:
+            scaled_dot_product.masked_fill_(mask, float('-inf'))
 
         attention_score = scaled_dot_product.softmax(dim = -1)
 
