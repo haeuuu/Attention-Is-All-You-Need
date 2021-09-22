@@ -66,7 +66,9 @@ class MultiHeadAttention(nn.Module):
 
         self.w['w_out'] = nn.Linear(n_heads * d_value, d_model)
 
-    def register_parameter(self):
+        self.reset_parameters()
+
+    def reset_parameters(self):
         for linear in self.w.values():
             torch.nn.init.xavier_normal_(linear.weight)
             torch.nn.init.xavier_normal_(linear.bias)
@@ -79,15 +81,15 @@ class MultiHeadAttention(nn.Module):
         return Q_concat, K_concat, V_concat
 
     def split(self, X, dim):
-        batch_size, length, d_concat = X.shape
+        batch_size, seq_len, d_concat = X.shape
 
         assert self.n_heads * dim == d_concat, 'DimensionError'
 
-        return X.view(batch_size, self.n_heads, length, dim)
+        return X.view(batch_size, self.n_heads, seq_len, dim)
 
     def concat(self, X):
-        batch_size, n_heads, length, d_value = X.shape
-        return X.view(batch_size, length, n_heads * d_value)
+        batch_size, n_heads, seq_len, d_value = X.shape
+        return X.view(batch_size, seq_len, n_heads * d_value)
 
     def forward(self, Q, K, V, mask = None):
         Q_concat, K_concat, V_concat = self.transform(Q, K, V)
