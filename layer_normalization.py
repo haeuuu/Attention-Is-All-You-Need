@@ -24,8 +24,8 @@ class LayerNormalization(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        self.gamma.data.fill_(1.)
-        self.beta.data.fill_(0.)
+        nn.init.ones_(self.gamma)
+        nn.init.zeros_(self.beta)
 
     def forward(self, x):
         mean = x.mean(dim = -1, keepdim = True)
