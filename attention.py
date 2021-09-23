@@ -55,7 +55,8 @@ class MultiHeadAttention(nn.Module):
 
     def reset_parameters(self):
         for linear in self.w.values():
-            torch.nn.init.xavier_normal_(linear.weight)
+            torch.nn.init.xavier_uniform_(linear.weight)
+            torch.nn.init.zeros_(linear.bias)
 
     def transform(self, Q, K, V):
         Q_concat = self.w['w_q'](Q)
@@ -108,7 +109,9 @@ class FeedForwardNN(nn.Module):
 
     def reset_parameters(self):
         torch.nn.init.xavier_uniform_(self.linear1.weight)
+        torch.nn.init.zeros_(self.linear1.bias)
         torch.nn.init.xavier_uniform_(self.linear2.weight)
+        torch.nn.init.zeros_(self.linear2.bias)
 
     def forward(self, x):
         x = self.linear1(x)
@@ -118,3 +121,25 @@ class FeedForwardNN(nn.Module):
         x = self.dropout2(x)
 
         return x
+
+if __name__ == '__main__':
+    attention = ScaledDotProductAttention(drop_prob = 0.1)
+    attention.eval() # deactivate dropout
+    
+    batch_size, seq_len, d_model = 2, 3, 4
+
+    inputs = torch.rand((batch_size, seq_len, d_model))
+    mask = torch.tensor([[[0, 1, 1],
+                        [0, 0, 1],
+                        [0, 0, 0]],
+
+                        [[0, 0, 1],
+                        [0, 0, 1],
+                        [0, 1, 1]]])
+
+    output, attn_score = attention(inputs, inputs, inputs, mask)
+
+    print('inputs : ', inputs)
+    print('lm mask : ', mask)
+    print('output : ', output)
+    print('attn_score : ',attn_score)
