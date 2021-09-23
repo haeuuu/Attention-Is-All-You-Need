@@ -28,6 +28,6 @@ class PositionalEncoding(nn.Module):
             (batch_size, length, d_hidden)
         """
         length = x.shape[1]
-        x = x + self.positional_encoding[:length, :]
+        x = x + self.positional_encoding[:length, :].to(x.device)
 
         return x
