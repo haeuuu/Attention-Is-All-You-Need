@@ -15,8 +15,11 @@ class LayerNormalization(nn.Module):
             shift factor
         """
         super().__init__()
+        if isinstance(dim, int):
+            dim = (dim,)
+            
         self.gamma = nn.Parameter(torch.Tensor(*dim))
-        self.beta = nn.parameter(torch.Tensor(*dim))
+        self.beta = nn.Parameter(torch.Tensor(*dim))
 
         self.reset_parameters()
 
@@ -25,8 +28,8 @@ class LayerNormalization(nn.Module):
         self.beta.data.fill_(0.)
 
     def forward(self, x):
-        mean = x.mean(dim = -1)
-        std = ((x- mean) ** 2).mean(dim = -1).sqrt()
+        mean = x.mean(dim = -1, keepdim = True)
+        std = ((x- mean) ** 2).mean(dim = -1, keepdim = True).sqrt()
         normalized = (x - mean) / std
 
         return self.gamma * normalized + self.beta
