@@ -138,7 +138,7 @@ class TransformerDecoderLayer(nn.Module):
 
         return output_normalized
 
-    def forward(self, x, encoder_out, target_mask = None, encoder_pad_mask = None):
+    def forward(self, x, encoder_out, targets_mask = None, inputs_mask = None):
         """
         Paramters
         ---------
@@ -170,10 +170,10 @@ class TransformerDecoderLayer(nn.Module):
 
         return x''
         """
-        output_masked_attn = self.masked_self_attention(qkv = x, mask = target_mask)
+        output_masked_attn = self.masked_self_attention(qkv = x, mask = targets_mask)
         output_ed_attn = self.encoder_decoder_attention(q = output_masked_attn,
                                                         kv = encoder_out,
-                                                        mask = encoder_pad_mask)
+                                                        mask = inputs_mask)
         output_ffnn = self.feed_forward(output_ed_attn)
 
         return output_ffnn
@@ -214,12 +214,12 @@ class TransformerDecoder(nn.Module):
                                                                 drop_prob = drop_prob) \
                                                                 for _ in range(n_layers)])
 
-    def forward(self, x, encoder_out, target_mask = None, encoder_pad_mask = None):
+    def forward(self, x, encoder_out, targets_mask = None, inputs_mask = None):
         for decoder in self.decoders:
             x = decoder(x = x,
                         encoder_out = encoder_out,
-                        target_mask = target_mask,
-                        encoder_pad_mask = encoder_pad_mask)
+                        targets_mask = targets_mask,
+                        inputs_mask = inputs_mask)
         
         return x
 
@@ -259,31 +259,31 @@ class Transformer(nn.Module):
                                           d_hidden_ffnn = d_hidden_ffnn,
                                           drop_prob = drop_prob)
 
-    def forward(self, inputs, inputs_pad_mask, masked_targets, target_mask):
+    def forward(self, inputs, inputs_mask, targets, targets_mask):
         """
         Parameters
         ----------
         inputs : torch.FloatTensor
             shape : (batch_size, seq_len, d_model)
 
-        inputs_pad_mask : torch.FloatTensor
+        inputs_mask : torch.FloatTensor
             shape : (batch_size, seq_len, d_model)
             padding (0) otherwise (1)
 
-        masked_targets : torch.FloatTensor
+        targets : torch.FloatTensor
             shape : (batch_size, seq_len, d_model)
             masked target features
 
-        inputs_pad_mask : torch.FloatTensor
+        targets_mask : torch.FloatTensor
             shape : (batch_size, seq_len, d_model)
             padding (0) otherwise (1)
         """
         encoder_out = self.encoder(x = inputs,
-                                    mask = inputs_pad_mask)
-        decoder_out = self.decoder(x = masked_targets,
+                                    mask = inputs_mask)
+        decoder_out = self.decoder(x = targets,
                                     encoder_out = encoder_out,
-                                    target_mask = target_mask,
-                                    encoder_pad_mask = inputs_pad_mask)
+                                    targets_mask = targets_mask,
+                                    inputs_mask = inputs_mask)
 
         return decoder_out
 
@@ -298,9 +298,9 @@ if __name__ == '__main__':
 
     transformer = Transformer()
     out = transformer(inputs = src,
-                    inputs_pad_mask = None,
-                    masked_targets = tgt,
-                    target_mask = None)
+                    inputs_mask = None,
+                    targets = tgt,
+                    targets_mask = None)
 
     print(out)
     print(out.shape) # (batch_size, q_len, d_hidden)
