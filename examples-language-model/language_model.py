@@ -16,7 +16,8 @@ class TransformerforLM(nn.Module):
                 n_heads = 8,
                 d_model = 512,
                 max_len = 5000,
-                d_hidden_ffnn = 2048):
+                d_hidden_ffnn = 2048,
+                drop_prob = 0.1):
         super().__init__()
         """Transformer for Language Modeling
         """
@@ -26,7 +27,8 @@ class TransformerforLM(nn.Module):
         self.encoder  = TransformerEncoder(n_layers = n_encoders,
                                             n_heads = n_heads,
                                             d_model = d_model,
-                                            d_hidden_ffnn = d_hidden_ffnn)
+                                            d_hidden_ffnn = d_hidden_ffnn,
+                                            drop_prob = drop_prob)
         self.decoder = nn.Linear(d_model, n_tokens)
         self.log_softmax = nn.LogSoftmax(dim = -1)
 
@@ -38,7 +40,7 @@ class TransformerforLM(nn.Module):
 
     def forward(self, src):
         inputs = self.get_input_features(src)
-        mask = generate_lm_mask(inputs.shape[1], fill = 1)
+        mask = generate_lm_mask(inputs, fill = 1)
 
         encoder_out = self.encoder(inputs, mask)
         decoder_out = self.decoder(encoder_out)
