@@ -32,7 +32,7 @@ class ScaledDotProductAttention(nn.Module):
 
         output = attention_score @ V
 
-        return output
+        return output, attention_score
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, n_heads, d_model, d_query, d_value, drop_prob = 0.1):
@@ -82,13 +82,13 @@ class MultiHeadAttention(nn.Module):
         K = self.split(K_concat, dim = self.d_query)
         V = self.split(V_concat, dim = self.d_value)
 
-        output = self.attention(Q, K, V, mask)
+        output, attn_score = self.attention(Q, K, V, mask)
         output_concat = self.concat(output)
 
         aggregated = self.w['w_out'](output_concat)
         aggregated = self.dropout(aggregated)
 
-        return aggregated
+        return aggregated, attn_score
 
 class FeedForwardNN(nn.Module):
     def __init__(self, d_model, d_hidden, drop_prob = 0.1):
