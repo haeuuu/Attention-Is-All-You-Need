@@ -42,13 +42,8 @@ def generate_pad_mask(inputs, pad_idx):
                                 [9,1,1]]) ; token indices
 
     generate_pad_mask(inputs, pad_idx = 1)
-    tensor([[[0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0]],
-
-            [[0, 1, 1],
-            [0, 1, 1],
-            [0, 1, 1]]])
+    tensor([[[0, 0, 0]],
+            [[0, 1, 1]]])
     """
     mask = (inputs == pad_idx).unsqueeze(1)
 
@@ -69,7 +64,7 @@ def generate_masked_attn_mask(targets, pad_idx, fill = 1):
     generate_masked_attn_mask(inputs, pad_idx = 1, fill = 1)
     tensor([[[0, 1, 1],
             [0, 0, 1],
-            [0, 0, 0]],
+            [0, 0, 1]],
 
             [[0, 1, 1],
             [0, 1, 1],
