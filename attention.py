@@ -82,6 +82,10 @@ class MultiHeadAttention(nn.Module):
         K = self.split(K_concat, dim = self.d_query)
         V = self.split(V_concat, dim = self.d_value)
 
+        if mask is not None:
+            # (batch_size, seq_len, d_model) to (batch_size, n_heads, seq_len, d_model)
+            mask = mask.unsqueeze(1)
+
         output, attn_score = self.attention(Q, K, V, mask)
         output_concat = self.concat(output)
 
