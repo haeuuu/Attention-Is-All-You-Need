@@ -40,10 +40,10 @@ class TransformerEncoderLayer(nn.Module):
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
     def self_attention(self, qkv, mask = None):
-        output = self.self_attn(Q = qkv,
-                                K = qkv,
-                                V = qkv,
-                                mask = mask)
+        output, attn_score = self.self_attn(Q = qkv,
+                                            K = qkv,
+                                            V = qkv,
+                                            mask = mask)
         output_normalized = self.layer_norm_for_self_attn(qkv + output)
 
         return output_normalized
@@ -115,19 +115,19 @@ class TransformerDecoderLayer(nn.Module):
         self.layer_norm_for_ffnn = LayerNormalization(d_model)
 
     def masked_self_attention(self, qkv, mask):
-        output = self.masked_self_attn(Q = qkv,
-                                        K = qkv,
-                                        V = qkv,
-                                        mask = mask)
+        output, attn_score = self.masked_self_attn(Q = qkv,
+                                                    K = qkv,
+                                                    V = qkv,
+                                                    mask = mask)
         output_normalized = self.layer_norm_for_self_attn(qkv + output)
 
         return output_normalized
 
     def encoder_decoder_attention(self, q, kv, mask):
-        output = self.ed_attn(Q = q,
-                            K = kv,
-                            V = kv,
-                            mask = mask)
+        output, attn_score = self.ed_attn(Q = q,
+                                          K = kv,
+                                          V = kv,
+                                          mask = mask)
         output_normalized = self.layer_norm_for_ed_attn(q + output)
 
         return output_normalized
