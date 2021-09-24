@@ -73,8 +73,9 @@ class MultiHeadAttention(nn.Module):
         return X.view(batch_size, seq_len, self.n_heads, dim).transpose(1,2)
 
     def concat(self, X):
-        batch_size, n_heads, seq_len, d_value = X.shape
-        return X.view(batch_size, seq_len, n_heads * d_value)
+        batch_size, _, seq_len, _ = X.shape
+
+        return X.permute(0,2,1,3).contiguous().view(batch_size, seq_len, -1)
 
     def forward(self, Q, K, V, mask = None):
         Q_concat, K_concat, V_concat = self.transform(Q, K, V)
@@ -84,7 +85,7 @@ class MultiHeadAttention(nn.Module):
         V = self.split(V_concat, dim = self.d_value)
 
         if mask is not None:
-            # (batch_size, seq_len, d_model) to (batch_size, n_heads, seq_len, d_model)
+            # (batch_size, 1, seq_len) to (batch_size, 1, 1, seq_len)
             mask = mask.unsqueeze(1)
 
         output, attn_score = self.attention(Q, K, V, mask)
