@@ -70,7 +70,7 @@ class MultiHeadAttention(nn.Module):
 
         assert self.n_heads * dim == d_concat, 'DimensionError'
 
-        return X.view(batch_size, self.n_heads, seq_len, dim)
+        return X.view(batch_size, seq_len, self.n_heads, dim).transpose(1,2)
 
     def concat(self, X):
         batch_size, n_heads, seq_len, d_value = X.shape
